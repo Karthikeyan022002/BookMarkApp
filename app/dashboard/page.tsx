@@ -101,14 +101,21 @@ export default function Dashboard() {
   }
 
   // ❌ Delete
-  const deleteBookmark = async (id: string) => {
-    await supabase.from("bookmarks").delete().eq("id", id)
-  }
+ const deleteBookmark = async (id: string) => {
+  const { error } = await supabase
+    .from("bookmarks")
+    .delete()
+    .eq("id", id)
 
-  const logout = async () => {
-    await supabase.auth.signOut()
-    router.push("/")
+  if (error) {
+    console.error("DELETE ERROR:", error)
+    setError(error.message)
+  } else {
+    console.log("Deleted successfully")
   }
+}
+
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-6">
