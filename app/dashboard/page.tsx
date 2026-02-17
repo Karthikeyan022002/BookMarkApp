@@ -102,16 +102,16 @@ export default function Dashboard() {
 
   // ❌ Delete
  const deleteBookmark = async (id: string) => {
+  if (!userId) return
+
   const { error } = await supabase
     .from("bookmarks")
     .delete()
     .eq("id", id)
+    .eq("user_id", userId)   // 👈 ADD THIS
 
   if (error) {
-    console.error("DELETE ERROR:", error)
-    setError(error.message)
-  } else {
-    console.log("Deleted successfully")
+    console.log("Delete error:", error.message)
   }
 }
 
