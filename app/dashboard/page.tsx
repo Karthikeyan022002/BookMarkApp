@@ -11,7 +11,10 @@ export default function Dashboard() {
   const [title, setTitle] = useState("")
   const [url, setUrl] = useState("")
   const [bookmarks, setBookmarks] = useState<any[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
 
+  // 🔐 Auth Protection
   useEffect(() => {
     const getUser = async () => {
       const { data } = await supabase.auth.getUser()
@@ -28,6 +31,7 @@ export default function Dashboard() {
     getUser()
   }, [router])
 
+  // 🔄 Realtime
   useEffect(() => {
     if (!userId) return
 
@@ -60,19 +64,43 @@ export default function Dashboard() {
     if (data) setBookmarks(data)
   }
 
-  const addBookmark = async () => {
-    if (!title || !url || !userId) return
+  // 🧠 URL Fix Helper
+  const formatUrl = (input: string) => {
+    if (!input.startsWith("http://") && !input.startsWith("https://")) {
+      return `https://${input}`
+    }
+    return input
+  }
 
-    await supabase.from("bookmarks").insert({
-      title,
-      url,
+  // ➕ Add
+  const addBookmark = async () => {
+    if (!title.trim() || !url.trim() || !userId) {
+      setError("Title and URL are required")
+      return
+    }
+
+    setLoading(true)
+    setError("")
+
+    const formattedUrl = formatUrl(url)
+
+    const { error } = await supabase.from("bookmarks").insert({
+      title: title.trim(),
+      url: formattedUrl,
       user_id: userId,
     })
 
-    setTitle("")
-    setUrl("")
+    if (error) {
+      setError("Failed to add bookmark")
+    } else {
+      setTitle("")
+      setUrl("")
+    }
+
+    setLoading(false)
   }
 
+  // ❌ Delete
   const deleteBookmark = async (id: string) => {
     await supabase.from("bookmarks").delete().eq("id", id)
   }
@@ -114,15 +142,20 @@ export default function Dashboard() {
             className="w-full px-4 py-3 rounded-xl bg-white/20 text-white placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
 
+          {error && (
+            <p className="text-red-400 text-sm text-center">{error}</p>
+          )}
+
           <button
             onClick={addBookmark}
-            className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 transition-all duration-200 font-semibold text-white shadow-lg"
+            disabled={loading}
+            className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 transition-all duration-200 font-semibold text-white shadow-lg disabled:opacity-50"
           >
-            Add Bookmark
+            {loading ? "Adding..." : "Add Bookmark"}
           </button>
         </div>
 
-        {/* Bookmarks List */}
+        {/* Bookmarks */}
         <div className="space-y-4">
           {bookmarks.length === 0 && (
             <p className="text-center text-slate-400 text-sm">
@@ -133,15 +166,17 @@ export default function Dashboard() {
           {bookmarks.map((bookmark) => (
             <div
               key={bookmark.id}
-              className="flex justify-between items-center bg-white/10 p-4 rounded-xl border border-white/10 hover:bg-white/20 transition"
+              className="flex justify-between items-start gap-4 bg-white/10 p-4 rounded-xl border border-white/10 hover:bg-white/20 transition"
             >
-              <div className="flex flex-col">
-                <span className="text-white font-medium">
+              <div className="flex flex-col max-w-[80%]">
+                <span className="text-white font-medium break-words">
                   {bookmark.title}
                 </span>
+
                 <a
                   href={bookmark.url}
                   target="_blank"
+                  rel="noopener noreferrer"
                   className="text-blue-400 text-sm hover:underline break-all"
                 >
                   {bookmark.url}
@@ -150,7 +185,7 @@ export default function Dashboard() {
 
               <button
                 onClick={() => deleteBookmark(bookmark.id)}
-                className="text-red-400 hover:text-red-500 text-sm font-medium"
+                className="text-red-400 hover:text-red-500 text-sm font-medium shrink-0"
               >
                 Delete
               </button>
