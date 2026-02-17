@@ -112,6 +112,9 @@ export default function Dashboard() {
       .eq("id", id)
       .eq("user_id", userId) // security check
 
+      console.log(error);
+      
+
     if (error) {
       console.error("Delete failed:", error.message)
     }
