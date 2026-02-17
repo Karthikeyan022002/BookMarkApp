@@ -32,7 +32,7 @@ export default function Dashboard() {
     if (!userId) return
 
     const channel = supabase
-      .channel("realtime-bookmarks")
+      .channel("bookmarks-realtime")
       .on(
         "postgres_changes",
         {
@@ -41,9 +41,7 @@ export default function Dashboard() {
           table: "bookmarks",
           filter: `user_id=eq.${userId}`,
         },
-        () => {
-          fetchBookmarks(userId)
-        }
+        () => fetchBookmarks(userId)
       )
       .subscribe()
 
@@ -85,36 +83,27 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 px-6 py-12">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-6">
+      <div className="w-full max-w-xl bg-white/10 backdrop-blur-lg border border-white/20 shadow-2xl rounded-3xl p-8 space-y-8">
 
-      <div className="max-w-3xl mx-auto space-y-10">
-
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-white">
-              Dashboard
-            </h1>
-            <p className="text-slate-400 text-sm">
-              Logged in as {email}
-            </p>
-          </div>
-
-          <button
-            onClick={logout}
-            className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition"
-          >
-            Logout
-          </button>
+        {/* Header */}
+        <div className="text-center space-y-2">
+          <h1 className="text-3xl font-bold text-white tracking-tight">
+            Bookmark Manager
+          </h1>
+          <p className="text-sm text-slate-300">
+            Logged in as <span className="font-medium text-white">{email}</span>
+          </p>
         </div>
 
-        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 space-y-4 shadow-xl">
-
+        {/* Add Form */}
+        <div className="space-y-4">
           <input
             type="text"
             placeholder="Bookmark title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl bg-white/10 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full px-4 py-3 rounded-xl bg-white/20 text-white placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
 
           <input
@@ -122,37 +111,38 @@ export default function Dashboard() {
             placeholder="https://example.com"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl bg-white/10 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full px-4 py-3 rounded-xl bg-white/20 text-white placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
 
           <button
             onClick={addBookmark}
-            className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold transition"
+            className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 transition-all duration-200 font-semibold text-white shadow-lg"
           >
             Add Bookmark
           </button>
         </div>
 
+        {/* Bookmarks List */}
         <div className="space-y-4">
           {bookmarks.length === 0 && (
-            <p className="text-center text-slate-500">
-              No bookmarks yet.
+            <p className="text-center text-slate-400 text-sm">
+              No bookmarks yet. Add your first one.
             </p>
           )}
 
           {bookmarks.map((bookmark) => (
             <div
               key={bookmark.id}
-              className="bg-white/5 border border-white/10 rounded-xl p-4 flex justify-between items-center hover:bg-white/10 transition"
+              className="flex justify-between items-center bg-white/10 p-4 rounded-xl border border-white/10 hover:bg-white/20 transition"
             >
-              <div>
-                <p className="text-white font-medium">
+              <div className="flex flex-col">
+                <span className="text-white font-medium">
                   {bookmark.title}
-                </p>
+                </span>
                 <a
                   href={bookmark.url}
                   target="_blank"
-                  className="text-indigo-400 text-sm hover:underline break-all"
+                  className="text-blue-400 text-sm hover:underline break-all"
                 >
                   {bookmark.url}
                 </a>
@@ -167,6 +157,14 @@ export default function Dashboard() {
             </div>
           ))}
         </div>
+
+        {/* Logout */}
+        <button
+          onClick={logout}
+          className="w-full py-3 rounded-xl bg-red-600 hover:bg-red-700 transition font-semibold text-white shadow-lg"
+        >
+          Logout
+        </button>
 
       </div>
     </div>
