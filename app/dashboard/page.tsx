@@ -4,6 +4,14 @@ import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabaseClient"
 import { useRouter } from "next/navigation"
 
+type Bookmark = {
+  id: string
+  title: string
+  url: string
+  user_id: string
+  created_at: string
+}
+
 export default function Dashboard() {
   const router = useRouter()
 
@@ -11,13 +19,13 @@ export default function Dashboard() {
   const [userId, setUserId] = useState<string | null>(null)
   const [title, setTitle] = useState("")
   const [url, setUrl] = useState("")
-  const [bookmarks, setBookmarks] = useState<any[]>([])
+  const [bookmarks, setBookmarks] = useState<Bookmark[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
-  // 🔐 Protect Route
+  // 🔐 Protect route
   useEffect(() => {
-    const getUser = async () => {
+    const checkUser = async () => {
       const { data } = await supabase.auth.getUser()
 
       if (!data.user) {
@@ -30,15 +38,15 @@ export default function Dashboard() {
       fetchBookmarks(data.user.id)
     }
 
-    getUser()
+    checkUser()
   }, [router])
 
-  // 🔄 Realtime Subscription
+  // 🔄 Realtime subscription
   useEffect(() => {
     if (!userId) return
 
     const channel = supabase
-      .channel("bookmarks-realtime")
+      .channel("realtime-bookmarks")
       .on(
         "postgres_changes",
         {
@@ -56,17 +64,20 @@ export default function Dashboard() {
     }
   }, [userId])
 
+  // 📥 Fetch bookmarks
   const fetchBookmarks = async (uid: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("bookmarks")
       .select("*")
       .eq("user_id", uid)
       .order("created_at", { ascending: false })
 
-    if (data) setBookmarks(data)
+    if (!error && data) {
+      setBookmarks(data)
+    }
   }
 
-  // 🔧 Auto-format URL
+  // 🔧 Format URL
   const formatUrl = (input: string) => {
     if (!input.startsWith("http://") && !input.startsWith("https://")) {
       return `https://${input}`
@@ -74,7 +85,7 @@ export default function Dashboard() {
     return input
   }
 
-  // ➕ Add Bookmark
+  // ➕ Add bookmark
   const addBookmark = async () => {
     if (!title.trim() || !url.trim() || !userId) {
       setError("Title and URL are required")
@@ -93,7 +104,7 @@ export default function Dashboard() {
     })
 
     if (error) {
-      setError("Failed to add bookmark")
+      setError(error.message)
     } else {
       setTitle("")
       setUrl("")
@@ -102,22 +113,25 @@ export default function Dashboard() {
     setLoading(false)
   }
 
-  // ❌ Delete Bookmark
+  // ❌ Delete bookmark (FINAL SAFE VERSION)
   const deleteBookmark = async (id: string) => {
     if (!userId) return
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("bookmarks")
       .delete()
       .eq("id", id)
-      .eq("user_id", userId) // security check
-
-      console.log(error);
-      
+      .eq("user_id", userId)
+      .select() // IMPORTANT for RLS
 
     if (error) {
       console.error("Delete failed:", error.message)
+      setError("Failed to delete bookmark")
+      return
     }
+
+    // Immediately update UI (no waiting for realtime)
+    setBookmarks((prev) => prev.filter((b) => b.id !== id))
   }
 
   // 🚪 Logout
@@ -132,11 +146,11 @@ export default function Dashboard() {
 
         {/* Header */}
         <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold text-white tracking-tight">
+          <h1 className="text-3xl font-bold text-white">
             Bookmark Manager
           </h1>
           <p className="text-sm text-slate-300">
-            Logged in as <span className="font-medium text-white">{email}</span>
+            Logged in as <span className="text-white font-medium">{email}</span>
           </p>
         </div>
 
@@ -165,7 +179,7 @@ export default function Dashboard() {
           <button
             onClick={addBookmark}
             disabled={loading}
-            className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 transition-all duration-200 font-semibold text-white shadow-lg disabled:opacity-50"
+            className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 transition font-semibold text-white shadow-lg disabled:opacity-50"
           >
             {loading ? "Adding..." : "Add Bookmark"}
           </button>
