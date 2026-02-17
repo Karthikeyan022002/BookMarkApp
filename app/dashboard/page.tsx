@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 
 export default function Dashboard() {
   const router = useRouter()
+
   const [email, setEmail] = useState<string | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
   const [title, setTitle] = useState("")
@@ -14,10 +15,11 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
-  // 🔐 Auth Protection
+  // 🔐 Protect Route
   useEffect(() => {
     const getUser = async () => {
       const { data } = await supabase.auth.getUser()
+
       if (!data.user) {
         router.push("/")
         return
@@ -31,7 +33,7 @@ export default function Dashboard() {
     getUser()
   }, [router])
 
-  // 🔄 Realtime
+  // 🔄 Realtime Subscription
   useEffect(() => {
     if (!userId) return
 
@@ -64,7 +66,7 @@ export default function Dashboard() {
     if (data) setBookmarks(data)
   }
 
-  // 🧠 URL Fix Helper
+  // 🔧 Auto-format URL
   const formatUrl = (input: string) => {
     if (!input.startsWith("http://") && !input.startsWith("https://")) {
       return `https://${input}`
@@ -72,7 +74,7 @@ export default function Dashboard() {
     return input
   }
 
-  // ➕ Add
+  // ➕ Add Bookmark
   const addBookmark = async () => {
     if (!title.trim() || !url.trim() || !userId) {
       setError("Title and URL are required")
@@ -100,22 +102,26 @@ export default function Dashboard() {
     setLoading(false)
   }
 
-  // ❌ Delete
- const deleteBookmark = async (id: string) => {
-  if (!userId) return
+  // ❌ Delete Bookmark
+  const deleteBookmark = async (id: string) => {
+    if (!userId) return
 
-  const { error } = await supabase
-    .from("bookmarks")
-    .delete()
-    .eq("id", id)
-    .eq("user_id", userId)   // 👈 ADD THIS
+    const { error } = await supabase
+      .from("bookmarks")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", userId) // security check
 
-  if (error) {
-    console.log("Delete error:", error.message)
+    if (error) {
+      console.error("Delete failed:", error.message)
+    }
   }
-}
 
-
+  // 🚪 Logout
+  const logout = async () => {
+    await supabase.auth.signOut()
+    router.push("/")
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-6">
@@ -162,7 +168,7 @@ export default function Dashboard() {
           </button>
         </div>
 
-        {/* Bookmarks */}
+        {/* Bookmark List */}
         <div className="space-y-4">
           {bookmarks.length === 0 && (
             <p className="text-center text-slate-400 text-sm">
