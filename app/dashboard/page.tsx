@@ -13,16 +13,22 @@ export default function Dashboard() {
 
   // Get logged in user
   useEffect(() => {
-    const getUser = async () => {
-      const { data } = await supabase.auth.getUser()
-      if (data.user) {
-        setEmail(data.user.email ?? "")
-        setUserId(data.user.id)
-        fetchBookmarks(data.user.id)
-      }
+  const getUser = async () => {
+    const { data } = await supabase.auth.getUser()
+
+    if (!data.user) {
+      window.location.href = "/"
+      return
     }
-    getUser()
-  }, [])
+
+    setEmail(data.user.email ?? "")
+    setUserId(data.user.id)
+    fetchBookmarks(data.user.id)
+  }
+
+  getUser()
+}, [])
+
 
 useEffect(() => {
   if (!userId) return
